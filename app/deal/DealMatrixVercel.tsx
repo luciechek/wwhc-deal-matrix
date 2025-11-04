@@ -187,38 +187,38 @@ useEffect(() => {
   setScores(nextS); setNotes(nextN); setViewMode('individual');
 };
 
-const deleteScores = async () => {
-  if (!dealName.trim() || !evaluatorName.trim()) {
-    alert('Enter deal + your name first');
+const deleteScores = async (who?: string) => {
+  const dn = dealName.trim();
+  const en = (who ?? evaluatorName).trim(); // <- si "who" est fourni on l'utilise
+
+  if (!dn || !en) {
+    alert('Please enter deal name and the evaluator name to delete.');
     return;
   }
-  if (!confirm(`Delete scores for "${evaluatorName}" on "${dealName}"?`)) return;
+
+  const ok = confirm(`Delete scores for "${en}" on deal "${dn}"? This cannot be undone.`);
+  if (!ok) return;
 
   try {
-    // You can send as body…
     const res = await fetch('/api/evaluations', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        dealName: dealName.trim(),
-        evaluatorName: evaluatorName.trim(),
-      }),
+      body: JSON.stringify({ dealName: dn, evaluatorName: en }),
     });
-
-    // …or as query params (works too):
-    // const res = await fetch(`/api/evaluations?dealName=${encodeURIComponent(dealName.trim())}&evaluatorName=${encodeURIComponent(evaluatorName.trim())}`, { method: 'DELETE' });
 
     if (!res.ok) throw new Error('delete failed');
 
-    // refresh lists + clear local form
+    // refresh UI
     await loadTeamScores();
-    await loadDeals?.();
-    setScores(blankMaps.s);
-    setNotes(blankMaps.n);
-    alert('Scores deleted.');
+    await loadDeals?.(); // si tu as la liste des deals
+    // si tu viens de supprimer "tes" scores, tu peux aussi vider le form
+    if (!who || who.toLowerCase() === evaluatorName.trim().toLowerCase()) {
+      setScores(blankMaps.s);
+      setNotes(blankMaps.n);
+    }
   } catch (e) {
-    console.error(e);
     alert('Failed to delete scores.');
+    console.error(e);
   }
 };
 
