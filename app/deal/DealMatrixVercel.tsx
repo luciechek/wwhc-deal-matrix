@@ -393,12 +393,12 @@ const deleteScores = async (who?: string) => {
             </button>
 
             <button
-                onClick={deleteScores}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-red-300 bg-white px-4 font-medium text-red-600 hover:bg-red-50"
-                title="Delete my saved scores for this deal"
+                onClick={() => deleteScores(ts.evaluator)}   // ← on passe le nom
+                title={`Delete ${ts.evaluator}'s scores`}
+                className="absolute right-2 top-2 rounded-md border border-red-200 p-1 text-red-600 hover:bg-red-50"
                 >
-                🗑️ Delete my scores
-            </button>
+                {/* icône poubelle ici si tu veux */}
+                </button>
 
           </div>
 
