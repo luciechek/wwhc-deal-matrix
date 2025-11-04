@@ -541,5 +541,6 @@ const deleteScores = async () => {
     </div>
   );
 };
+};
 
 export default DealMatrixVercel;
