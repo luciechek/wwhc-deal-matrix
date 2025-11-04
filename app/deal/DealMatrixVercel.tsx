@@ -393,11 +393,11 @@ const deleteScores = async (who?: string) => {
             </button>
 
             <button
-                onClick={() => deleteScores(ts.evaluator)}   // ← on passe le nom
+                onClick={() => deleteScores(ts.evaluator)}   // ✅ on passe le nom via une arrow
                 title={`Delete ${ts.evaluator}'s scores`}
                 className="absolute right-2 top-2 rounded-md border border-red-200 p-1 text-red-600 hover:bg-red-50"
                 >
-                {/* icône poubelle ici si tu veux */}
+                {/* Trash icon ici */}
                 </button>
 
           </div>
