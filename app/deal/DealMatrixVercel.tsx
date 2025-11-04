@@ -222,6 +222,9 @@ const deleteScores = async (who?: string) => {
   }
 };
 
+const handleDeleteClick = (who?: string) => () => {
+  return deleteScores(who);
+};
 
   const newDeal = () => {
     setDealName(''); setEvaluatorName('');
@@ -393,11 +396,11 @@ const deleteScores = async (who?: string) => {
             </button>
 
             <button
-                onClick={() => deleteScores(ts.evaluator)}   // ✅ on passe le nom via une arrow
+                onClick={handleDeleteClick(ts.evaluator)} // ✅ on passe le nom via le wrapper
                 title={`Delete ${ts.evaluator}'s scores`}
                 className="absolute right-2 top-2 rounded-md border border-red-200 p-1 text-red-600 hover:bg-red-50"
                 >
-                {/* Trash icon ici */}
+                {/* <Trash2 className="h-4 w-4" /> si tu utilises l’icône */}
                 </button>
 
           </div>
