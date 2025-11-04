@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Evaluation {
+  id         Int      @id @default(autoincrement())
+  dealName   String
+  evaluator  String
+  scores     Json
+  notes      Json?
+  createdAt  DateTime @default(now())
+
+  @@unique([dealName, evaluator]) // 1 note par personne et par deal
+}
+
