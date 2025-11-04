@@ -31,11 +31,11 @@ const DealMatrixVercel = () => {
   const [loadingDeals, setLoadingDeals] = useState(false);
 
   // -------- Refs for sticky menu scroll --------
-  const howToRef   = useRef<HTMLDivElement>(null);
-  const scoringRef = useRef<HTMLDivElement>(null);
-  const dealsRef   = useRef<HTMLDivElement>(null);
-  const scrollTo = (ref: React.RefObject<HTMLElement>) =>
-    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const howToRef   = useRef<HTMLDivElement | null>(null);
+  const scoringRef = useRef<HTMLDivElement | null>(null);
+  const dealsRef   = useRef<HTMLDivElement | null>(null);
+  const scrollTo = (ref: React.RefObject<HTMLElement | null>) => {
+  ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   // -------- Criteria (monochrome version) --------
   const criteria: Record<string, { id: string; label: string; desc: string }[]> = useMemo(() => ({
