@@ -1,56 +1,57 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 
 export default function AccessPage() {
-  const [code, setCode] = useState("");
-  const [error, setError] = useState<string>("");
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-
-    const res = await fetch("/api/access", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
-    });
-
-    if (res.ok) {
-      // access cookie set by API → send user to the app
-      window.location.href = "/";
-    } else {
-      setError("Invalid access code. Please try again.");
+    setLoading(true);
+    setErr('');
+    try {
+      const r = await fetch('/api/access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        setErr(j?.error || 'Invalid code');
+        setLoading(false);
+        return;
+      }
+      // Cookie posé par le serveur -> on peut entrer
+      window.location.href = '/';
+    } catch {
+      setErr('Network error');
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-sm rounded-2xl border border-gray-200 p-6 shadow-sm"
-      >
-        <h1 className="mb-3 text-xl font-semibold">Enter access code</h1>
-
+    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
+      <form onSubmit={submit} style={{ width: 320, padding: 16, border: '1px solid #e5e7eb', borderRadius: 12 }}>
+        <h1 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Enter access code</h1>
         <input
           value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder="Access code"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:border-gray-900"
+          style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #d1d5db', marginBottom: 10 }}
         />
-
-        {error && (
-          <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
         <button
           type="submit"
-          className="mt-4 w-full rounded-lg bg-gray-900 px-4 py-2 font-medium text-white hover:bg-black"
+          disabled={loading || !code.trim()}
+          style={{
+            width: '100%', padding: 10, borderRadius: 8, border: '1px solid #111827',
+            background: '#111827', color: 'white', opacity: loading ? 0.7 : 1
+          }}
         >
-          Continue
+          {loading ? 'Checking…' : 'Continue'}
         </button>
+        {err && <div style={{ color: '#b91c1c', fontSize: 12, marginTop: 8 }}>{err}</div>}
       </form>
     </div>
   );
