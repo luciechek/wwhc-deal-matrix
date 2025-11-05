@@ -23,7 +23,6 @@ export default function AccessPage() {
         setLoading(false);
         return;
       }
-      // Cookie posé par le serveur -> on peut entrer
       window.location.href = '/';
     } catch {
       setErr('Network error');
@@ -32,27 +31,82 @@ export default function AccessPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
-      <form onSubmit={submit} style={{ width: 320, padding: 16, border: '1px solid #e5e7eb', borderRadius: 12 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Enter access code</h1>
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="Access code"
-          style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #d1d5db', marginBottom: 10 }}
-        />
-        <button
-          type="submit"
-          disabled={loading || !code.trim()}
-          style={{
-            width: '100%', padding: 10, borderRadius: 8, border: '1px solid #111827',
-            background: '#111827', color: 'white', opacity: loading ? 0.7 : 1
-          }}
-        >
-          {loading ? 'Checking…' : 'Continue'}
-        </button>
-        {err && <div style={{ color: '#b91c1c', fontSize: 12, marginTop: 8 }}>{err}</div>}
-      </form>
+    <div
+      style={{
+        backgroundColor: 'white',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+      }}
+    >
+      {/* Bloc principal */}
+      <div
+        style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: 12,
+          padding: '40px 32px',
+          width: 360,
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+          textAlign: 'center',
+        }}
+      >
+        {/* Logo optionnel */}
+        {/* <img src="/logo.png" alt="WWHC" style={{ width: 60, marginBottom: 16 }} /> */}
+
+        <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 12, color: '#111827' }}>
+          Deal Evaluation Matrix
+        </h1>
+        <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 24 }}>
+          Enter the access code to continue
+        </p>
+
+        <form onSubmit={submit}>
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Access code"
+            style={{
+              width: '100%',
+              padding: 12,
+              borderRadius: 8,
+              border: '1px solid #d1d5db',
+              fontSize: 14,
+              marginBottom: 14,
+              outline: 'none',
+            }}
+          />
+          <button
+            type="submit"
+            disabled={loading || !code.trim()}
+            style={{
+              width: '100%',
+              padding: 12,
+              borderRadius: 8,
+              border: 'none',
+              background: '#111827',
+              color: 'white',
+              fontWeight: 500,
+              fontSize: 14,
+              cursor: loading ? 'wait' : 'pointer',
+              opacity: loading ? 0.8 : 1,
+            }}
+          >
+            {loading ? 'Checking…' : 'Continue'}
+          </button>
+        </form>
+
+        {err && (
+          <div style={{ color: '#b91c1c', fontSize: 13, marginTop: 12 }}>{err}</div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <p style={{ color: '#9ca3af', fontSize: 12, marginTop: 24 }}>
+        © White Wolf Capital — Internal Tool
+      </p>
     </div>
   );
 }
