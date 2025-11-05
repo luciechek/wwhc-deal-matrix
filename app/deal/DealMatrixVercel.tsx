@@ -458,13 +458,21 @@ const pickMyDeal = (name: string) => {
     <div className="grid gap-2 md:grid-cols-2">
       {myDeals.map(d => (
         <button
-          key={d.dealName}
-          onClick={() => pickMyDeal(d.dealName)}
-          className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-left hover:border-gray-300"
-        >
-          <span className="font-medium text-gray-800">{d.dealName}</span>
-          <span className="text-sm font-semibold tabular-nums">{d.avgScore.toFixed(2)}</span>
-        </button>
+  key={d.dealName}
+  onClick={() => {
+    // Sélectionne le deal et recharge les données
+    setDealName(d.dealName);
+    setViewMode('individual');
+    setScores(blankMaps.s);
+    setNotes(blankMaps.n);
+    // recharge l’équipe pour ce deal après le setState
+    setTimeout(() => { void loadTeamScores(); }, 0);
+  }}
+  className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-left hover:bg-gray-100"
+>
+  <span className="font-medium text-gray-800">{d.dealName}</span>
+</button>
+
       ))}
     </div>
     <div className="mt-2 text-xs text-gray-500">
