@@ -183,13 +183,20 @@ const DealMatrixVercel = () => {
     return;
   }
 
-const pickMyDeal = async (name: string) => {
+const pickMyDeal = (name: string) => {
+  // mets le nom du deal
   setDealName(name);
-  setMyDeals([]); // on masque la liste
-  // charge l'équipe puis mes scores pour ce deal
-  await loadTeamScores();
-  await loadMyScores();
+  // repasse en vue individuelle
+  setViewMode('individual');
+
+  // nettoie les champs locaux pour éviter un affichage "fantôme"
+  setScores(blankMaps.s);
+  setNotes(blankMaps.n);
+
+  // recharge l'équipe pour ce deal (après le setState)
+  setTimeout(() => { void loadTeamScores(); }, 0);
 };
+
 
 
   const ok = confirm(`Delete your scores for "${dn}"? This cannot be undone.`);
