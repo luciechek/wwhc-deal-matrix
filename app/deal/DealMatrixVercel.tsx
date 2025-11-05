@@ -3,11 +3,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Database, Users, User, Save, BookOpen, Gauge, Briefcase, RefreshCcw } from 'lucide-react';
-import { Trash2 } from 'lucide-react'
 
 type ScoreMap = Record<string, number>;
 type NoteMap  = Record<string, string>;
 type TeamRow  = { evaluator: string; scores: ScoreMap; notes?: NoteMap };
+type MyDeal = { dealName: string; avgScore: number; updatedAt?: string };
+
 
 type DealSummary = {
   dealName: string;
@@ -25,17 +26,18 @@ const DealMatrixVercel = () => {
   const [evaluatorName, setEvaluatorName] = useState('');
   const [loading, setLoading]   = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
+  const [myDeals, setMyDeals] = useState<MyDeal[]>([]);
 
   // Deals summary list
   const [deals, setDeals] = useState<DealSummary[]>([]);
   const [loadingDeals, setLoadingDeals] = useState(false);
 
   // -------- Refs for sticky menu scroll --------
-  const howToRef   = useRef<HTMLDivElement | null>(null);
-  const scoringRef = useRef<HTMLDivElement | null>(null);
-  const dealsRef   = useRef<HTMLDivElement | null>(null);
-  const scrollTo = (ref: React.RefObject<HTMLElement | null>) => {
-  ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const howToRef   = useRef<HTMLDivElement>(null);
+  const scoringRef = useRef<HTMLDivElement>(null);
+  const dealsRef   = useRef<HTMLDivElement>(null);
+  const scrollTo = (ref: React.RefObject<HTMLElement>) =>
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   // -------- Criteria (monochrome version) --------
   const criteria: Record<string, { id: string; label: string; desc: string }[]> = useMemo(() => ({
@@ -102,45 +104,45 @@ const DealMatrixVercel = () => {
   // Load team when dealName changes
   useEffect(() => { if (dealName.trim()) void loadTeamScores(); }, [dealName]);
 
-  // If user (deal+name) matches existing row, hydrate form once (safe)
-useEffect(() => {
-  if (!dealName.trim() || !evaluatorName.trim() || teamScores.length === 0) return;
+  // If user (deal+name) matches existing row, hydrate form once
+  useEffect(() => {
+    if (!dealName.trim() || !evaluatorName.trim() || teamScores.length === 0) return;
+    const me = teamScores.find(
+      ts => ts.evaluator.trim().toLowerCase() === evaluatorName.trim().toLowerCase()
+    );
+    if (!me) return;
 
-  const target = (evaluatorName ?? '').toString().trim().toLowerCase();
+    // Only apply if something is really different (avoid loops)
+    const nextS = { ...blankMaps.s, ...(me.scores || {}) };
+    const nextN = { ...blankMaps.n, ...(me.notes  || {}) };
+    const sameScores =
+      Object.keys(nextS).every(k => (scores[k] ?? 0) === (nextS[k] ?? 0));
+    const sameNotes  =
+      Object.keys(nextN).every(k => (notes[k] ?? '') === (nextN[k] ?? ''));
 
-  const me = teamScores.find(ts => {
-    const name = (ts as any)?.evaluator ?? '';
-    return name.toString().trim().toLowerCase() === target;
-  });
-
-  if (!me) return;
-
-  const nextS = { ...blankMaps.s, ...(me.scores ?? {}) };
-  const nextN = { ...blankMaps.n, ...(me.notes  ?? {}) };
-
-  const sameScores = Object.keys(nextS).every(k => (scores[k] ?? 0)   === (nextS[k] ?? 0));
-  const sameNotes  = Object.keys(nextN).every(k => (notes[k]  ?? '') === (nextN[k]  ?? ''));
-
-  if (!sameScores) setScores(nextS);
-  if (!sameNotes)  setNotes(nextN);
-  setViewMode('individual');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [dealName, evaluatorName, teamScores, blankMaps]);
-
+    if (!sameScores) setScores(nextS);
+    if (!sameNotes)  setNotes(nextN);
+    setViewMode('individual');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dealName, evaluatorName, teamScores, blankMaps]);
 
   // ------ API helpers ------
   const loadTeamScores = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(
-        `/api/evaluations?dealName=${encodeURIComponent(dealName.trim())}`,
-        { cache: 'no-store' }
-      );
-      if (res.ok) setTeamScores(await res.json());
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+    const res = await fetch(
+      `/api/evaluations?dealName=${encodeURIComponent(dealName.trim())}`,
+      { cache: 'no-store' }
+    );
+    if (!res.ok) { setTeamScores([]); return [] as TeamRow[]; }
+    const data = (await res.json()) as TeamRow[];
+    setTeamScores(data);
+    return data;
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const saveScores = async () => {
     if (!dealName.trim() || !evaluatorName.trim()) {
@@ -172,59 +174,82 @@ useEffect(() => {
     }
   };
 
-  const loadMyScores = () => {
-  if (!dealName.trim() || !evaluatorName.trim()) {
-    alert('Enter deal + your name first'); return;
-  }
-  const target = (evaluatorName ?? '').toString().trim().toLowerCase();
-  const me = teamScores.find(t => ((t as any)?.evaluator ?? '')
-    .toString().trim().toLowerCase() === target);
-
-  if (!me) { alert('No saved scores for this deal + name.'); return; }
-
-  const nextS = { ...blankMaps.s, ...(me.scores ?? {}) };
-  const nextN = { ...blankMaps.n, ...(me.notes  ?? {}) };
-  setScores(nextS); setNotes(nextN); setViewMode('individual');
-};
-
-const deleteScores = async (who?: string) => {
+  const deleteMyScores = async () => {
   const dn = dealName.trim();
-  const en = (who ?? evaluatorName).trim(); // <- si "who" est fourni on l'utilise
-
+  const en = evaluatorName.trim();
   if (!dn || !en) {
-    alert('Please enter deal name and the evaluator name to delete.');
+    alert('Please enter deal name and your name first.'); 
     return;
   }
 
-  const ok = confirm(`Delete scores for "${en}" on deal "${dn}"? This cannot be undone.`);
+const pickMyDeal = async (name: string) => {
+  setDealName(name);
+  setMyDeals([]); // on masque la liste
+  // charge l'équipe puis mes scores pour ce deal
+  await loadTeamScores();
+  await loadMyScores();
+};
+
+
+  const ok = confirm(`Delete your scores for "${dn}"? This cannot be undone.`);
   if (!ok) return;
 
+  setLoading(true);
+  setSaveStatus('Deleting…');
   try {
     const res = await fetch('/api/evaluations', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dealName: dn, evaluatorName: en }),
+      body: JSON.stringify({ dealName: dn, evaluatorName: en })
     });
-
     if (!res.ok) throw new Error('delete failed');
 
-    // refresh UI
+    // reset UI + refresh listes
+    setScores(blankMaps.s);
+    setNotes(blankMaps.n);
     await loadTeamScores();
-    await loadDeals?.(); // si tu as la liste des deals
-    // si tu viens de supprimer "tes" scores, tu peux aussi vider le form
-    if (!who || who.toLowerCase() === evaluatorName.trim().toLowerCase()) {
-      setScores(blankMaps.s);
-      setNotes(blankMaps.n);
-    }
-  } catch (e) {
-    alert('Failed to delete scores.');
-    console.error(e);
+    await loadDeals();
+    setSaveStatus('🗑️ Deleted.');
+  } catch {
+    setSaveStatus('❌ Delete failed!');
+  } finally {
+    setLoading(false);
+    setTimeout(() => setSaveStatus(''), 2200);
   }
 };
 
-const handleDeleteClick = (who?: string) => () => {
-  return deleteScores(who);
+  const loadMyScores = async () => {
+  const name = evaluatorName.trim();
+  const deal = dealName.trim();
+
+  if (!name) { alert('Enter your name first'); return; }
+
+  // NO DEAL NAME -> on affiche la liste de TOUS les deals de cette personne
+  if (!deal) {
+    const res = await fetch(`/api/my-scores?evaluator=${encodeURIComponent(name)}`, { cache: 'no-store' });
+    if (res.ok) {
+      const list = (await res.json()) as MyDeal[];
+      setMyDeals(list);
+      if (list.length === 0) alert('No saved deals for this name yet.');
+    } else {
+      alert('Failed to load your deals.');
+    }
+    return;
+  }
+
+  // DEAL NAME présent -> comportement habituel (charger mes scores pour ce deal)
+  const rows = await loadTeamScores();
+  const target = name.toLowerCase();
+  const me = rows.find(r => (r.evaluator || '').toLowerCase() === target);
+  if (!me) { alert('No saved scores for this deal + name.'); return; }
+
+  const nextS = { ...blankMaps.s, ...(me.scores || {}) };
+  const nextN = { ...blankMaps.n, ...(me.notes  || {}) };
+  setScores(nextS);
+  setNotes(nextN);
+  setViewMode('individual');
 };
+
 
   const newDeal = () => {
     setDealName(''); setEvaluatorName('');
@@ -232,13 +257,12 @@ const handleDeleteClick = (who?: string) => () => {
     setTeamScores([]); setViewMode('individual');
   };
 
-  // --- SAFE averages ---
-  const avg = (m?: Record<string, number> | null) => {
-    const vals = Object.values(m ?? {}).map(Number).filter(x => x > 0);
-    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+  const avg = (m: ScoreMap) => {
+    const v = Object.values(m).filter(x => x > 0);
+    return v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0;
   };
   const teamAvgFor = (id: string) => {
-    const v = teamScores.map(t => (t.scores?.[id] ?? 0)).filter(x=>x>0);
+    const v = teamScores.map(t => t.scores?.[id] || 0).filter(x=>x>0);
     return v.length ? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(1) : 'N/A';
   };
   const finalScore =
@@ -256,7 +280,9 @@ const handleDeleteClick = (who?: string) => () => {
       setLoadingDeals(false);
     }
   };
+
   useEffect(() => { void loadDeals(); }, []);
+  const isTeamModeActive = viewMode === 'team' && teamScores.length > 0;
 
   // ---------------- RENDER ----------------
   return (
@@ -299,7 +325,7 @@ const handleDeleteClick = (who?: string) => () => {
             alt="Company Logo"
             width={200}
             height={89}
-            className="object-contain opacity-90 transition-opacity hover:opacity-100"
+            className="object-contain opacity-90 hover:opacity-100 transition-opacity"
           />
         </div>
         <p className="text-sm text-gray-500">Monochrome • Independent Sponsor IC Tool</p>
@@ -311,15 +337,22 @@ const handleDeleteClick = (who?: string) => () => {
             <span className="text-lg font-semibold">How to use</span>
           </div>
           <ol className="ml-4 list-decimal space-y-2 text-sm text-gray-700">
-            <li><strong>Enter the same deal name</strong> for everyone (e.g., <em>“Acme Corp Acquisition”</em>). The name must match exactly to merge scores.</li>
-            <li>Type <strong>your name</strong> in the “Your Name” field.</li>
-            <li>For each criterion, move the slider (0 = N/A) and add notes if useful.</li>
-            <li>Click <strong>Save</strong> to persist your scores to the database.</li>
-            <li>Use <strong>Load my scores</strong> to instantly reload your own saved scores (same deal + your name).</li>
-            <li>Use <strong>Team View</strong> to see everyone’s results combined for this deal.</li>
-            <li>Click <strong>New Deal</strong> to reset the form and start a fresh evaluation.</li>
-            <li>In the top menu, <strong>SCORING</strong> jumps to the scoring section; <strong>DEALS</strong> lists all deals created with avg score & reviewers.</li>
+            <li><strong>Deal Name</strong>: everyone must type the exact same deal name (e.g., <em>“Acme Corp Acquisition”</em>) so scores merge correctly.</li>
+            <li><strong>Your Name</strong>: type your full name (used to save & find your scores).</li>
+            <li><strong>Sliders & Notes</strong>: move each slider (0 = N/A) and add notes if useful.</li>
+            <li><strong>Save</strong>: persists your scores to the database.</li>
+            <li><strong>Load my scores</strong>:
+                <ul className="list-disc ml-6">
+                <li>If a deal name is filled → reloads <em>your</em> scores for that deal.</li>
+                <li>If the deal name is empty → shows a list of <em>all deals you rated</em> with your average; click a deal to load it.</li>
+                </ul>
+            </li>
+            <li><strong>Delete my scores</strong>: removes <em>your</em> saved scores for the current deal.</li>
+            <li><strong>Team View</strong>: combines everyone’s results for the current deal.</li>
+            <li><strong>New Deal</strong>: resets the form to start a fresh evaluation.</li>
+            <li>Top menu: <strong>SCORING</strong> jumps to the scoring section; <strong>DEALS</strong> lists all deals with average score & number of reviewers.</li>
           </ol>
+
         </div>
 
         {/* INPUTS + ACTIONS (SCORING HEADER) */}
@@ -382,6 +415,13 @@ const handleDeleteClick = (who?: string) => () => {
             </button>
 
             <button
+                onClick={deleteMyScores}
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-red-300 bg-white px-4 font-medium text-red-600 hover:bg-red-50"
+                >
+                🗑️ Delete my scores
+                </button>
+
+            <button
               onClick={()=>setViewMode('team')}
               disabled={!teamScores.length}
               className={`inline-flex h-10 items-center gap-2 rounded-lg px-4 font-medium ${
@@ -394,16 +434,37 @@ const handleDeleteClick = (who?: string) => () => {
             >
               <Users className="h-4 w-4" /> Team View ({teamScores.length})
             </button>
-
-            <button
-                onClick={handleDeleteClick(ts.evaluator)} // ✅ on passe le nom via le wrapper
-                title={`Delete ${ts.evaluator}'s scores`}
-                className="absolute right-2 top-2 rounded-md border border-red-200 p-1 text-red-600 hover:bg-red-50"
-                >
-                {/* <Trash2 className="h-4 w-4" /> si tu utilises l’icône */}
-                </button>
-
           </div>
+
+{myDeals.length > 0 && (
+  <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
+    <div className="mb-2 flex items-center justify-between">
+      <div className="text-sm font-medium text-gray-800">Your deals</div>
+      <button
+        onClick={() => setMyDeals([])}
+        className="text-xs text-gray-500 hover:underline"
+      >
+        hide
+      </button>
+    </div>
+    <div className="grid gap-2 md:grid-cols-2">
+      {myDeals.map(d => (
+        <button
+          key={d.dealName}
+          onClick={() => pickMyDeal(d.dealName)}
+          className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-left hover:border-gray-300"
+        >
+          <span className="font-medium text-gray-800">{d.dealName}</span>
+          <span className="text-sm font-semibold tabular-nums">{d.avgScore.toFixed(2)}</span>
+        </button>
+      ))}
+    </div>
+    <div className="mt-2 text-xs text-gray-500">
+      Tip: click a deal to load your saved scores for it.
+    </div>
+  </div>
+)}
+
 
           {saveStatus && (
             <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-center text-sm text-gray-700">
@@ -417,20 +478,11 @@ const handleDeleteClick = (who?: string) => () => {
               <div className="mb-2 text-sm font-medium text-gray-700">Team Members</div>
               <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                 {teamScores.map((ts, idx)=>(
-                    <div key={`${ts.evaluator}-${idx}`} className="relative rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-                        <div className="text-xs text-gray-500 pr-6">{ts.evaluator}</div>
-                        <div className="text-xl font-semibold">{avg(ts.scores).toFixed(2)}</div>
-
-                        {/* small delete button in top-right */}
-                        <button
-                        title={`Delete ${ts.evaluator}'s scores`}
-                        onClick={() => deleteScores(ts.evaluator)}
-                        className="absolute right-2 top-2 rounded-md border border-red-200 p-1 text-red-600 hover:bg-red-50"
-                        >
-                        <Trash2 className="h-4 w-4" />
-                        </button>
-                    </div>
-                    ))}
+                  <div key={`${ts.evaluator}-${idx}`} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                    <div className="text-xs text-gray-500">{ts.evaluator}</div>
+                    <div className="text-xl font-semibold">{avg(ts.scores).toFixed(2)}</div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -465,39 +517,48 @@ const handleDeleteClick = (who?: string) => () => {
                     </div>
                   </div>
 
-                  {viewMode==='individual' && (
-                    <>
-                      <input
-                        type="range" min={0} max={5}
-                        value={scores[criterion.id] || 0}
-                        onChange={(e)=>setScores({...scores, [criterion.id]: parseInt(e.target.value,10)})}
-                        className="mt-2 w-full accent-gray-600"
-                      />
-                      <textarea
-                        value={notes[criterion.id] || ''}
-                        onChange={(e)=>setNotes({...notes, [criterion.id]: e.target.value})}
-                        placeholder="Notes / context…"
-                        className="mt-2 min-h-[44px] w-full resize-y rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
-                      />
-                    </>
-                  )}
+                  {/* ✅ ON AFFICHE LES INPUTS SI PAS DE TEAM VIEW ACTIVE */}
+{!isTeamModeActive && (
+  <>
+    <input
+      type="range" min={0} max={5}
+      value={scores[criterion.id] || 0}
+      onChange={(e)=>setScores({...scores, [criterion.id]: parseInt(e.target.value,10)})}
+      className="mt-2 w-full accent-gray-600"
+    />
+    <textarea
+      value={notes[criterion.id] || ''}
+      onChange={(e)=>setNotes({...notes, [criterion.id]: e.target.value})}
+      placeholder="Notes / context…"
+      className="mt-2 min-h-[44px] w-full resize-y rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+    />
+  </>
+)}
 
-                  {viewMode==='team' && teamScores.length>0 && (
-                    <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
-                      {teamScores.map((ts, idx)=>{
-                    const name = ((ts as any)?.evaluator ?? `User ${idx+1}`).toString();
-                    const s = ts.scores?.[criterion.id] ?? 0;
-                    const note = ts.notes?.[criterion.id] ?? '';
-                    return (
-                        <div key={`${criterion.id}-${name}-${idx}`} className="rounded-lg border border-gray-200 bg-white p-2">
-                        <div className="text-xs text-gray-500">{name}</div>
-                        <div className="font-semibold">{s === 0 ? 'N/A' : s}</div>
-                        {note && <div className="mt-1 text-[11px] text-gray-500 line-clamp-2">{note}</div>}
-                        </div>
-                    );
-                    })}
-                    </div>
-                  )}
+{/* ✅ ON AFFICHE LA VUE TEAM UNIQUEMENT SI ELLE EXISTE */}
+{isTeamModeActive && (
+  <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
+    {teamScores.map((ts, idx) => {
+      const s = ts.scores?.[criterion.id] || 0;
+      const note = ts.notes?.[criterion.id] || '';
+      return (
+        <div
+          key={`${criterion.id}-${ts.evaluator}-${idx}`}
+          className="rounded-lg border border-gray-200 bg-white p-2"
+        >
+          <div className="text-xs text-gray-500">{ts.evaluator}</div>
+          <div className="font-semibold">{s === 0 ? 'N/A' : s}</div>
+          {note && (
+            <div className="mt-1 text-[11px] text-gray-500 line-clamp-2">
+              {note}
+            </div>
+          )}
+        </div>
+      );
+    })}
+  </div>
+)}
+
                 </div>
               );
             })}
@@ -543,7 +604,6 @@ const handleDeleteClick = (who?: string) => () => {
       </div>
     </div>
   );
-};
 };
 
 export default DealMatrixVercel;

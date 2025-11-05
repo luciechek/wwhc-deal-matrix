@@ -8,13 +8,13 @@ datasource db {
 }
 
 model Evaluation {
-  id         Int      @id @default(autoincrement())
-  dealName   String
-  evaluator  String
-  scores     Json
-  notes      Json?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  dealName  String
+  evaluator String
+  scores    Json
+  notes     Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@unique([dealName, evaluator]) // 1 note par personne et par deal
+  @@unique([dealName, evaluator], name: "dealName_evaluator")
 }
-
