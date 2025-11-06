@@ -16,6 +16,12 @@ type DealSummary = {
   reviewers: number;    // nb d'évaluateurs
 };
 
+async function logout() {
+  await fetch('/api/logout', { method: 'POST' });
+  window.location.href = '/access';
+}
+
+
 const DealMatrixVercel = () => {
   // -------- UI State --------
   const [viewMode, setViewMode] = useState<'individual' | 'team'>('individual');
@@ -295,6 +301,15 @@ const pickMyDeal = (name: string) => {
   // ---------------- RENDER ----------------
   return (
     <div className="min-h-screen bg-white text-gray-900">
+          {/* Bouton Logout */}
+    <div className="absolute right-4 top-4">
+      <button
+        onClick={logout}
+        className="rounded-md bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 transition"
+      >
+        Logout
+      </button>
+    </div>
       {/* Sticky menu */}
       <nav className="sticky top-0 z-30 border-b bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2">
@@ -443,6 +458,8 @@ const pickMyDeal = (name: string) => {
               <Users className="h-4 w-4" /> Team View ({teamScores.length})
             </button>
           </div>
+
+
 
 {myDeals.length > 0 && (
   <div className="mt-3 rounded-xl border border-gray-200 bg-white p-3">
