@@ -295,22 +295,44 @@ const pickMyDeal = (name: string) => {
   const isTeamModeActive = viewMode === 'team' && teamScores.length > 0;
 
   async function logout() {
-  try {
-    await fetch('/api/logout', { method: 'POST' });
-  } finally {
-    window.location.href = '/access';
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+    } finally {
+      window.location.href = '/access';
+    }
   }
-}
 
-useEffect(() => {
-    const handler = () => {
-      try {
-        navigator.sendBeacon('/api/logout');
-      } catch {}
+const DealMatrixVercel = () => {
+  // ... tes useState / useRef / etc. déjà en place
+
+  // --- Logout manuel (bouton) ---
+  async function logout() {
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+    } finally {
+      window.location.href = '/access';
+    }
+  }
+
+  // --- Logout auto à la fermeture/refresh/onglet caché ---
+  useEffect(() => {
+    const fireAndForget = () => {
+      try { navigator.sendBeacon('/api/logout'); } catch {}
     };
-    window.addEventListener('unload', handler);
-    return () => window.removeEventListener('unload', handler);
+    // pagehide marche mieux que unload sur certains navigateurs
+    window.addEventListener('pagehide', fireAndForget);
+    // fallback quand l’onglet passe en hidden (mobile / iOS)
+    const onVis = () => { if (document.visibilityState === 'hidden') fireAndForget(); };
+    document.addEventListener('visibilitychange', onVis);
+
+    return () => {
+      window.removeEventListener('pagehide', fireAndForget);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, []);
+
+  // ... le reste de ton composant
+
 
 
   // ---------------- RENDER ----------------
@@ -330,25 +352,17 @@ useEffect(() => {
     </div>
       {/* Sticky menu */}
       <nav className="sticky top-0 z-30 border-b bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-gray-100">
-              <Database className="h-5 w-5 text-gray-700" />
-            </div>
-            <span className="text-base font-semibold">Deal Evaluation Matrix</span>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => scrollTo(howToRef)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50">
-              <BookOpen className="h-4 w-4" /> HOW TO USE
-            </button>
-            <button onClick={() => scrollTo(scoringRef)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50">
-              <Gauge className="h-4 w-4" /> SCORING
-            </button>
-            <button onClick={() => scrollTo(dealsRef)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50">
-              <Briefcase className="h-4 w-4" /> DEALS
-            </button>
-          </div>
-        </div>
+  <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2">
+    {/* ... la partie gauche ... */}
+    <div className="flex gap-2">
+      {/* tes 3 boutons HOW TO USE / SCORING / DEALS */}
+      <button onClick={logout} className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50">
+        <LogOut className="h-4 w-4" /> Log out
+      </button>
+    </div>
+  </div>
+</nav>
+
       </nav>
 
       {/* Page container */}
