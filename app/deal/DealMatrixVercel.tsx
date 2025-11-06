@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import { Database, Users, User, Save, BookOpen, Gauge, Briefcase, RefreshCcw, LogOut } from 'lucide-react';
+import { Database, Users, User, Save, BookOpen, Gauge, Briefcase, RefreshCcw } from 'lucide-react';
+
 
 type ScoreMap = Record<string, number>;
 type NoteMap  = Record<string, string>;
