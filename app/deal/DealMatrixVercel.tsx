@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import { Database, Users, User, Save, BookOpen, Gauge, Briefcase, RefreshCcw } from 'lucide-react';
+import { Database, Users, User, Save, BookOpen, Gauge, Briefcase, RefreshCcw, LogOut } from 'lucide-react';
+
 
 type ScoreMap = Record<string, number>;
 type NoteMap  = Record<string, string>;
@@ -295,8 +296,12 @@ const pickMyDeal = (name: string) => {
   const isTeamModeActive = viewMode === 'team' && teamScores.length > 0;
 
   async function logout() {
-   await fetch('/api/logout', { method: 'POST' });
-   window.location.href = '/access';
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+    } finally {
+      // back to the access page after we clear the cookie
+      window.location.href = '/access';
+    }
   }
 
   // ---------------- RENDER ----------------
@@ -305,11 +310,13 @@ const pickMyDeal = (name: string) => {
           {/* Bouton Logout */}
     <div className="absolute right-4 top-4">
       <button
-        onClick={logout}
-        className="rounded-md bg-red-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-600 transition"
-      >
-        Logout
-      </button>
+  onClick={logout}
+  className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50"
+  title="Log out"
+>
+  <LogOut className="h-4 w-4" /> Logout
+</button>
+
     </div>
       {/* Sticky menu */}
       <nav className="sticky top-0 z-30 border-b bg-white">

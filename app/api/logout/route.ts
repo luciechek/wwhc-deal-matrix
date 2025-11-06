@@ -1,16 +1,16 @@
-// app/api/logout/route.ts
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function POST() {
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set({
+  // remove the access cookie (same name + path as when you set it)
+  (await cookies()).set({
     name: 'access',
     value: '',
-    maxAge: 0,           // supprime
+    path: '/',
+    maxAge: 0,
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
   });
-  return res;
+
+  return NextResponse.json({ ok: true });
 }
