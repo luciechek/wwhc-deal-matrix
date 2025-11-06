@@ -16,10 +16,6 @@ type DealSummary = {
   reviewers: number;    // nb d'évaluateurs
 };
 
-async function logout() {
-  await fetch('/api/logout', { method: 'POST' });
-  window.location.href = '/access';
-}
 
 
 const DealMatrixVercel = () => {
@@ -297,6 +293,11 @@ const pickMyDeal = (name: string) => {
 
   useEffect(() => { void loadDeals(); }, []);
   const isTeamModeActive = viewMode === 'team' && teamScores.length > 0;
+
+  async function logout() {
+   await fetch('/api/logout', { method: 'POST' });
+   window.location.href = '/access';
+  }
 
   // ---------------- RENDER ----------------
   return (
