@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Database, Users, User, Save, BookOpen, Gauge, Briefcase, RefreshCcw, LogOut } from 'lucide-react';
-
+import { useEffect } from 'react';
 
 type ScoreMap = Record<string, number>;
 type NoteMap  = Record<string, string>;
@@ -296,13 +296,23 @@ const pickMyDeal = (name: string) => {
   const isTeamModeActive = viewMode === 'team' && teamScores.length > 0;
 
   async function logout() {
-    try {
-      await fetch('/api/logout', { method: 'POST' });
-    } finally {
-      // back to the access page after we clear the cookie
-      window.location.href = '/access';
-    }
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+  } finally {
+    window.location.href = '/access';
   }
+}
+
+useEffect(() => {
+    const handler = () => {
+      try {
+        navigator.sendBeacon('/api/logout');
+      } catch {}
+    };
+    window.addEventListener('unload', handler);
+    return () => window.removeEventListener('unload', handler);
+  }, []);
+
 
   // ---------------- RENDER ----------------
   return (
@@ -316,6 +326,7 @@ const pickMyDeal = (name: string) => {
 >
   <LogOut className="h-4 w-4" /> Logout
 </button>
+
 
     </div>
       {/* Sticky menu */}

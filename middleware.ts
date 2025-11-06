@@ -1,24 +1,29 @@
-import { NextResponse, NextRequest } from 'next/server';
+// middleware.ts (à la racine du projet)
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+const PUBLIC_FILE = /\.(.*)$/;
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // endpoints publics
-  if (pathname.startsWith('/access') || pathname.startsWith('/api/access') || pathname.startsWith('/_next') || pathname.startsWith('/favicon')) {
+  if (
+    pathname.startsWith('/access') ||
+    pathname.startsWith('/api/access') ||
+    pathname.startsWith('/api/logout') ||
+    pathname.startsWith('/_next') ||
+    PUBLIC_FILE.test(pathname)
+  ) {
     return NextResponse.next();
   }
 
-  const cookie = req.cookies.get('access')?.value;
-  if (cookie === 'granted') {
-    return NextResponse.next();
+  const access = req.cookies.get('access')?.value;
+  if (access !== 'granted') {
+    const url = req.nextUrl.clone();
+    url.pathname = '/access';
+    url.search = '';
+    return NextResponse.redirect(url);
   }
 
-  const url = req.nextUrl.clone();
-  url.pathname = '/access';
-  return NextResponse.redirect(url);
+  return NextResponse.next();
 }
-
-// Protège toutes les pages sauf les ressources internes
-export const config = {
-  matcher: ['/((?!_next|.*\\.(?:svg|png|jpg|jpeg|gif|ico|txt)).*)'],
-};
