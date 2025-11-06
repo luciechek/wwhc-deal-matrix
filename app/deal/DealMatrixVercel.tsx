@@ -363,8 +363,6 @@ const DealMatrixVercel = () => {
   </div>
 </nav>
 
-      </nav>
-
       {/* Page container */}
       <div className="mx-auto max-w-6xl px-4 py-4">
         {/* HEADER */}
