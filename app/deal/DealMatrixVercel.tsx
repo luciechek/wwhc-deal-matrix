@@ -668,5 +668,6 @@ const DealMatrixVercel = () => {
     </div>
   );
 };
+};
 
 export default DealMatrixVercel;
